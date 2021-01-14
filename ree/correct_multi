@@ -1,0 +1,4 @@
+on table1 with t0, t1 AS r1 where t0.id = t1.id  AND t0.id = 'abc'
+on table2 with t2, t3 AS r2 where t2.idd = t3.idd
+INNER JOIN(r1, r2) where r1.id = r2.idd
+correct r1.id = r2.idd

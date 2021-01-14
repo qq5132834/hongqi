@@ -1,0 +1,182 @@
+DELETE FROM "mm"."mm_source_confidence" WHERE ds_id = 'dsid0';
+INSERT INTO "mm"."mm_source_confidence" VALUES ('1', 'dsid0', '1', '1', 'table0', 'id', 1111, 1, NULL, NULL, NULL, NULL);
+INSERT INTO "mm"."mm_source_confidence" VALUES ('2', 'dsid0', '1', '1', 'table0', 'name', 2222, 1, NULL, NULL, NULL, NULL);
+INSERT INTO "mm"."mm_source_confidence" VALUES ('3', 'dsid0', '1', '1', 'table0', 'city', 3333, 1, NULL, NULL, NULL, NULL);
+INSERT INTO "mm"."mm_source_confidence" VALUES ('4', 'dsid0', '1', '1', 'table1', 'name', 9999, 1, NULL, NULL, NULL, NULL);
+
+-----------多表联合------------
+batch(t0) ^ batch(t1) ^ batchh(t2) ^ batchh(t3) ^ t0.id = t1.id ^ t2.idd = t3.idd ^ t0.id = t2.idd -> t0.name = t2.namee; 
+batch(t0) ^ batch(t1) ^ batchh(t2) ^ batchh(t3) ^ t0.id = t1.id ^ t2.idd = t3.idd -> t0.name = t2.namee; 
+batch(t0) ^ batch(t1) ^ batchh(t2) ^ batchh(t3) ^ t0.id = t1.id ^ t0.id = t2.idd -> t0.name = t2.namee; 
+batch(t0) ^ batch(t1) ^ batchh(t2) ^ batchh(t3) ^ t0.id = t2.idd -> t0.name = t2.namee; 
+batch(t0) ^ batchh(t2) ^ batchh(t3) ^ t2.idd = t3.idd ^ t0.id = t2.idd -> t0.name = t2.namee; 
+batch(t0) ^ batchh(t2) ^ t0.id = t2.idd -> t0.name = t2.namee; 
+
+
+batch(t0) ^ batch(t1) ^ t0.id = t1.id ->  t0.name = t1.name
+------------修正语法-----------
+on batch(id, name) where id = '001' correct city = 'changsha';
+on batch(id, name) with t0 where t0.id = '001' correct t0.city = 'changsha';
+
+ON batch(id, name) WITH t0,t1 WHERE t0.id = t1.id CORRECT t0.name = t1.name;
+
+batch(t0) ^ batch(t1) ^ batchh(t2) ^ batchh(t3) ^ t0.id = t1.id ^ t2.idd = t3.idd ^ t0.id = t2.idd -> t0.name = t2.namee;
+
+---创建中间表
+CREATE TABLE IF NOT EXISTS ei_dim.batch
+(
+row_id string,
+source_data_id string,
+last_update_time bigint,
+id string,
+name string,
+city string
+) partitioned by ( batch_id string ) 
+
+
+CREATE TABLE IF NOT EXISTS ei_dim.batchh
+(
+row_id string,
+source_data_id string,
+last_update_time bigint,
+idd string,
+namee string,
+cityy string
+) partitioned by ( batch_id string ) 
+
+delete from hive.ei_dim.batchh;
+insert into hive.ei_dim.batchh(row_id, source_data_id, last_update_time, idd, namee, cityy, batch_id ) values('11111','dsid0.table0', 19881010, '001', 'yueyang', 'hunan', 'batch01');
+insert into hive.ei_dim.batchh(row_id, source_data_id, last_update_time, idd, namee, cityy, batch_id ) values('22222','dsid0.table0', 19881010, '001', 'hengyang', 'hunan', 'batch01');
+insert into hive.ei_dim.batchh(row_id, source_data_id, last_update_time, idd, namee, cityy, batch_id ) values('33333','dsid0.table0', 19881010, '002', 'yiyang', 'hunan', 'batch01');
+insert into hive.ei_dim.batchh(row_id, source_data_id, last_update_time, idd, namee, cityy, batch_id ) values('44444','dsid0.table0', 19881010, '002', 'shaoyang', 'hunan', 'batch01');
+insert into hive.ei_dim.batchh(row_id, source_data_id, last_update_time, idd, namee, cityy, batch_id ) values('55555','dsid0.table0', 19881010, '003', 'liuyang', 'hunan', 'batch01');
+
+---创建可信表
+CREATE TABLE IF NOT EXISTS ei_dim.dim_confidence_batch
+(
+ row_id string,
+ column_name string,
+ credibility bigint,
+ create_time bigint,
+ last_update_time bigint,
+ 
+)  Partitioned  by (batch_id string)
+ 
+
+---在线纠错---
+CREATE TABLE IF NOT EXISTS temp_dim_mid_dimension
+(
+row_id VARCHAR,
+source_data_id VARCHAR,
+last_update_time INT8,
+id VARCHAR,
+name VARCHAR,
+city VARCHAR,
+batch_id VARCHAR
+);
+
+
+insert into rml_cache.public.temp_dim_mid_dimension(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('11111','dsid0.table0', 19881010, '001', 'JAVA', 'shenzhen', 'batch01');
+insert into rml_cache.public.temp_dim_mid_dimension(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('22222','dsid0.table1', 19881010, '001', 'GO', 'shenzhen', 'batch01');
+insert into rml_cache.public.temp_dim_mid_dimension(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('33333','dsid0.table0', 19881010, '002', 'C', 'shenzhen', 'batch01');
+insert into rml_cache.public.temp_dim_mid_dimension(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('44444','dsid0.table1', 19881010, '002', 'C++', 'shenzhen', 'batch01');
+insert into rml_cache.public.temp_dim_mid_dimension(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('55555','dsid0.table0', 19881010, '003', 'PYTHON', 'shenzhen', 'batch01');
+
+
+---初始化中间表
+delete from hive.ei_dim.batch;
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('11111','dsid0.table0', 19881010, '001', 'JAVA', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('22222','dsid0.table1', 19881010, '001', 'GO', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('33333','dsid0.table0', 19881010, '002', 'C', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('44444','dsid0.table1', 19881010, '002', 'C++', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('55555','dsid0.table0', 19881010, '003', 'PYTHON', 'shenzhen', 'batch01');
+
+delete from hive.ei_dim.dim_confidence_logs;
+delete from hive.ei_dim.dim_confidence_batch;
+delete from hive.ei_dim.dim_confidence_dimension;
+delete from hive.ei_dim.dim_conflict_notify;
+
+select * from hive.ei_dim.batch;
+select * from hive.ei_dim.dim_confidence_logs;
+select * from hive.ei_dim.dim_conflict_notify;
+select * from hive.ei_dim.dim_confidence_dimension;
+
+
+---内存表
+select * from memory.default.correct_dimension;
+ 
+
+
+-------------可信表
+CREATE TABLE IF NOT EXISTS hive.ei_dim.dim_confidence_dimension
+(  
+ dimension_id       varchar,      
+ ds_id              varchar,       
+ ds_name            varchar ,      
+ db_name            varchar,       
+ table_name         varchar,       
+ column_name        varchar,       
+ credibility        bigint,         
+ row_id             varchar,        
+ source_table_name  varchar,       
+ status             bigint,         
+ createby           varchar,        
+ createtime         bigint,         
+ updateby           varchar,        
+ updatetime         bigint         
+)
+
+ 
+ 
+
+
+---------------源数据表可信度
+CREATE TABLE IF NOT EXISTS hive.ei_dim.source_confidence 
+(
+ id           varchar,
+ ds_id        varchar,
+ ds_name      varchar,
+ db_name      varchar,
+ table_name   varchar,
+ column_name  varchar,
+ credibility  bigint,
+ status       bigint,
+ createby     varchar,
+ createtime   bigint,
+ updateby     varchar,
+ updatetime   bigint
+);
+
+
+insert into hive.ei_dim.source_confidence(ds_id, table_name, column_name, credibility) values('dsid0.table0', 'table0', 'id', 2222);
+insert into hive.ei_dim.source_confidence(ds_id, table_name, column_name, credibility) values('dsid0.table0', 'table0', 'name', 3333);
+insert into hive.ei_dim.source_confidence(ds_id, table_name, column_name, credibility) values('dsid0.table0', 'table0', 'city', 4444);
+---------------------
+
+
+-------------------接口准备--------------
+{
+    "dimensionID": "tm.000999001",
+    "ruleContent": {
+        "name": "rule001",
+        "body": "  on batch(id, name) where id = '001' correct city = 'changsha' ;  ",
+        "description": "RE 测试规则"
+    },
+    "type": "procedure"
+}
+-------------------
+{
+        "batchID": "batch",
+        "batchParentID": "parent",
+        "dimensionID": "dimension",
+        "inputParams": [],
+        "isAsync": 0,
+        "isDebug": 0,
+        "outputParams": [],
+        "ruleID": "793699119789241182"
+}
+--------------------
+alter table batch drop partition (batch_id != 'batch01');
+
+
+	

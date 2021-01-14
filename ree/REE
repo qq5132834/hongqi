@@ -1,0 +1,412 @@
+product(ta) ^ product(tb) ^ ta.online_year = tb.online_year ^ ML(moduleId,ta.description,tb.description) -> ta.id = tb.id ^ ta.weight = tb.weight;
+
+
+ ON product(*) WITH ta,tb WHERE ta.id = tb.id AND ta.weight = tb.weight CHECK ta.online_year = tb.online_year AND ML(moduleId,ta.description,tb.description)
+ 
+ shop(ta) ^shop(tb) ^ ta.date created = tb.date created  -> ta.id = tb.id; 
+ 
+ 
+ 
+ 
+ 
+ 
+ ON batch(id, name) WITH t0, t1 WHERE t0.id = t1.id CHECK t0.name = t1.name;
+ 
+ 
+ batch(t0) ^  batch(t1) ^ t0.id = t1.id ^ ML('00001', t0.city, t1.city) -> t0.name = t1.name;
+ 
+  batch(t0) ^ batch(t1) ^ t0.id = t1.id -> t0.name = 'pod';
+  
+ 
+ 
+ SELECT t0.row_id as t0_row_id, t0.name as t0_name, t0.id as t0_id, t1.row_id as t1_row_id, t1.name as t1_name, t1.id as t1_id  
+ FROM hive.ei_dim.batch t0, hive.ei_dim.batch t1 
+ WHERE t0.id = t1.id AND ML('00001', t0.city, t1.city) AND t0.row_id != t1.row_id AND NOT  ( t0.name = t1.name ) 
+ 
+ 
+ 
+ t0.column_1 == '测试' ^ t0.column_11 == t1.column_2 -> t1.column_2 == '测试'
+  t0.column_1 == '测试' ^ t0.column_11 == t1.column_2 -> t1.column_2 == 123
+  table(t1) ^ ML('1',t0.id, t1.id) -> t1.column_2 == 123
+  
+    table(t0) ^ table1(t1)  ^ t0.column_11 == t1.column_2 -> t1.column_2 == 123
+	
+	table(t0) ^ table(t1) -> t1.column_2 == 123
+	
+	table(t1) ^ ML(1,t0.id, t1.id) -> t1.column_2 == 123
+	
+	
+	
+	
+	
+	
+	
+	batch(t0) ^ batch(t1) ^ t0.id = t1.id -> t0.name = 'pod';
+	
+	
+	1.  fx的可信值需要大于全局可信度；(t0.id, t1.id) > fd; 
+	 
+	 batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_batch_id, batch_t0_id, batch_t0_name, batch_t0_city,
+	 batch_t1_row_id, batch_t1_source_data_id, batch_t1_last_update_time, batch_t1_batch_id, batch_t1_id, batch_t1_name, batch_t1_city
+	
+	   t0.id AS batch_t0_row_id, 
+	   t0.source_data_id AS batch_t0_source_data_id, 
+	   t0.last_update_time AS batch_t0_last_update_time, 
+	   t0.batch_id AS batch_t0_batch_id, 
+	   t0.id AS batch_t0_id, 
+	   t0.name AS batch_t0_name, 
+	   t0.city AS batch_t0_city,
+		
+	   t1.id AS batch_t1_row_id, 
+	   t1.source_data_id AS batch_t1_source_data_id, 
+	   t1.last_update_time AS batch_t1_last_update_time, 
+	   t1.batch_id AS batch_t1_batch_id, 
+	   t1.id AS batch_t1_id, 
+	   t1.name AS batch_t1_name, 
+	   t1.city AS batch_t1_city,
+		
+	2.  
+	
+	SELECT 
+	   t0.id AS batch_t0_row_id, 
+	   t0.source_data_id AS batch_t0_source_data_id, 
+	   t0.last_update_time AS batch_t0_last_update_time, 
+	   t0.batch_id AS batch_t0_batch_id, 
+	   t0.id AS batch_t0_id, 
+	   t0.name AS batch_t0_name, 
+	   t0.city AS batch_t0_city,
+		
+	   t1.id AS batch_t1_row_id, 
+	   t1.source_data_id AS batch_t1_source_data_id, 
+	   t1.last_update_time AS batch_t1_last_update_time, 
+	   t1.batch_id AS batch_t1_batch_id, 
+	   t1.id AS batch_t1_id, 
+	   t1.name AS batch_t1_name, 
+	   t1.city AS batch_t1_city 
+	   
+	FROM hive.ei_dim.batch t0, hive.ei_dim.batch t1 
+	WHERE t0.id = t1.id
+	
+	
+	
+	
+	
+	 SELECT * FROM (  SELECT  *  FROM hive.ei_dim.batch WHERE id = '001' ) AS tb_dim  LEFT JOIN ( 
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.row_id = f_credibility.fc_row_id 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.source_data_id = f_credibility1.fs_ds_id 
+
+	
+	---计算A表的可信值
+	
+ SELECT batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_batch_id, batch_t0_id, batch_t0_name, batch_t0_city,  
+	CASE WHEN  fc_id IS NULL THEN fs_id ELSE fc_id END  AS batch_t0_f_col_id, 
+	CASE WHEN  fc_name IS NULL THEN fs_name ELSE fc_name END  AS batch_t0_f_col_name, 
+	CASE WHEN  fc_city IS NULL THEN fs_city ELSE fc_city END  AS batch_t0_f_col_city
+ FROM (
+ 
+ SELECT * FROM (  SELECT  row_id AS batch_t0_row_id, source_data_id AS batch_t0_source_data_id, last_update_time AS batch_t0_last_update_time, batch_id AS batch_t0_batch_id, id AS batch_t0_id, name AS batch_t0_name, city AS batch_t0_city  
+				  FROM hive.ei_dim.batch 
+				) AS tb_dim  LEFT JOIN (
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.batch_t0_row_id = f_credibility.fc_row_id 
+ 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.batch_t0_source_data_id = f_credibility1.fs_ds_id 
+ ) t 
+
+	
+	---计算B表的可信值
+	
+ SELECT batch_t1_row_id, batch_t1_source_data_id, batch_t1_last_update_time, batch_t1_batch_id, batch_t1_id, batch_t1_name, batch_t1_city,  
+	CASE WHEN  fc_id IS NULL THEN fs_id ELSE fc_id END  AS batch_t1_f_col_id, 
+	CASE WHEN  fc_name IS NULL THEN fs_name ELSE fc_name END  AS batch_t1_f_col_name, 
+	CASE WHEN  fc_city IS NULL THEN fs_city ELSE fc_city END  AS batch_t1_f_col_city
+ FROM ( 
+ SELECT * FROM (  SELECT  row_id AS batch_t1_row_id, source_data_id AS batch_t1_source_data_id, last_update_time AS batch_t1_last_update_time, batch_id AS batch_t1_batch_id, id AS batch_t1_id, name AS batch_t1_name, city AS batch_t1_city  
+				  FROM hive.ei_dim.batch 
+				) AS tb_dim  LEFT JOIN ( 
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.batch_t1_row_id = f_credibility.fc_row_id 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.batch_t1_source_data_id = f_credibility1.fs_ds_id 
+ ) t 
+
+	
+	------多表的可信值数据操作 select * from A表可信值 AS TT0 , B表可信值 AS TT1 WEHRE whereCaluse --------
+	
+	SELECT tt0.*, tt1.*, tt1.batch_t1_name AS expr_name, batch_t1_f_col_name AS f_expr_name,  0 as flag, 1000 as f_x FROM (
+	
+	SELECT tt0.*, tt1.*, 'pod' AS expr_name, 10000 AS f_expr_name, 0 AS flag, 1000 AS f_x FROM (
+		
+ SELECT batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_batch_id, batch_t0_id, batch_t0_name, batch_t0_city,  
+	CASE WHEN  fc_id IS NULL THEN fs_id ELSE fc_id END  AS batch_t0_f_col_id, 
+	CASE WHEN  fc_name IS NULL THEN fs_name ELSE fc_name END  AS batch_t0_f_col_name, 
+	CASE WHEN  fc_city IS NULL THEN fs_city ELSE fc_city END  AS batch_t0_f_col_city
+ FROM ( 
+ SELECT * FROM (  SELECT  row_id AS batch_t0_row_id, source_data_id AS batch_t0_source_data_id, last_update_time AS batch_t0_last_update_time, batch_id AS batch_t0_batch_id, id AS batch_t0_id, name AS batch_t0_name, city AS batch_t0_city  
+				  FROM hive.ei_dim.batch 
+				) AS tb_dim  LEFT JOIN ( 
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.batch_t0_row_id = f_credibility.fc_row_id 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.batch_t0_source_data_id = f_credibility1.fs_ds_id 
+ ) t 
+	
+	) tt0, 
+
+(
+	 SELECT batch_t1_row_id, batch_t1_source_data_id, batch_t1_last_update_time, batch_t1_batch_id, batch_t1_id, batch_t1_name, batch_t1_city,  
+	CASE WHEN  fc_id IS NULL THEN fs_id ELSE fc_id END  AS batch_t1_f_col_id, 
+	CASE WHEN  fc_name IS NULL THEN fs_name ELSE fc_name END  AS batch_t1_f_col_name, 
+	CASE WHEN  fc_city IS NULL THEN fs_city ELSE fc_city END  AS batch_t1_f_col_city
+ FROM ( 
+ SELECT * FROM (  SELECT  row_id AS batch_t1_row_id, source_data_id AS batch_t1_source_data_id, last_update_time AS batch_t1_last_update_time, batch_id AS batch_t1_batch_id, id AS batch_t1_id, name AS batch_t1_name, city AS batch_t1_city  
+				  FROM hive.ei_dim.batch 
+				) AS tb_dim  LEFT JOIN ( 
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.batch_t1_row_id = f_credibility.fc_row_id 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.batch_t1_source_data_id = f_credibility1.fs_ds_id 
+ ) t 
+	
+) tt1
+
+ WHERE  tt0.batch_t0_row_id = tt1.batch_t1_row_id
+
+-----------判断f_x>0---------
+
+SELECT * FROM ( 
+	多表可信值的sql
+)  tt WHERE tt.f_x >= 0
+
+------------创建内存表--------
+
+ CREATE TABLE memory.default.correct_dimension01 AS 
+	SELECT * FROM ( 
+  
+	
+	SELECT tt0.*, tt1.*, 'pod' AS expr_name, 10000 AS f_expr_name, 0 AS flag, 1000 AS f_x FROM (
+		
+ SELECT batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_batch_id, batch_t0_id, batch_t0_name, batch_t0_city,  
+	CASE WHEN  fc_id IS NULL THEN fs_id ELSE fc_id END  AS batch_t0_f_col_id, 
+	CASE WHEN  fc_name IS NULL THEN fs_name ELSE fc_name END  AS batch_t0_f_col_name, 
+	CASE WHEN  fc_city IS NULL THEN fs_city ELSE fc_city END  AS batch_t0_f_col_city
+ FROM ( 
+ SELECT * FROM (  SELECT  row_id AS batch_t0_row_id, source_data_id AS batch_t0_source_data_id, last_update_time AS batch_t0_last_update_time, batch_id AS batch_t0_batch_id, id AS batch_t0_id, name AS batch_t0_name, city AS batch_t0_city  
+				  FROM hive.ei_dim.batch 
+				) AS tb_dim  LEFT JOIN ( 
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.batch_t0_row_id = f_credibility.fc_row_id 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.batch_t0_source_data_id = f_credibility1.fs_ds_id 
+ ) t 
+	
+	) tt0, 
+
+(
+	 SELECT batch_t1_row_id, batch_t1_source_data_id, batch_t1_last_update_time, batch_t1_batch_id, batch_t1_id, batch_t1_name, batch_t1_city,  
+	CASE WHEN  fc_id IS NULL THEN fs_id ELSE fc_id END  AS batch_t1_f_col_id, 
+	CASE WHEN  fc_name IS NULL THEN fs_name ELSE fc_name END  AS batch_t1_f_col_name, 
+	CASE WHEN  fc_city IS NULL THEN fs_city ELSE fc_city END  AS batch_t1_f_col_city
+ FROM ( 
+ SELECT * FROM (  SELECT  row_id AS batch_t1_row_id, source_data_id AS batch_t1_source_data_id, last_update_time AS batch_t1_last_update_time, batch_id AS batch_t1_batch_id, id AS batch_t1_id, name AS batch_t1_name, city AS batch_t1_city  
+				  FROM hive.ei_dim.batch 
+				) AS tb_dim  LEFT JOIN ( 
+ SELECT 
+   SUM(CASE column_name WHEN 'id' THEN credibility END) as fc_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fc_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fc_city, 
+   row_id as fc_row_id 
+ FROM hive.ei_dim.dim_confidence_dimension 
+ GROUP BY row_id 
+ )  AS f_credibility ON tb_dim.batch_t1_row_id = f_credibility.fc_row_id 
+ LEFT JOIN ( 
+ SELECT 
+  CASE WHEN fs_id IS NULL THEN 1000 else fs_id END AS fs_id, 
+  CASE WHEN fs_name IS NULL THEN 1000 else fs_name END AS fs_name, 
+  CASE WHEN fs_city IS NULL THEN 1000 else fs_city END AS fs_city, 
+  fs_ds_id 
+ FROM 
+ (  SELECT    SUM(CASE column_name WHEN 'id' THEN credibility END) as fs_id, 
+   SUM(CASE column_name WHEN 'name' THEN credibility END) as fs_name, 
+   SUM(CASE column_name WHEN 'city' THEN credibility END) as fs_city, 
+   ds_id fs_ds_id 
+ FROM ( select ds_id || '.' || table_name as ds_id, column_name, credibility from mm.mm.mm_source_confidence ) 
+ GROUP BY ds_id 
+ ) 
+ )  AS f_credibility1 ON tb_dim.batch_t1_source_data_id = f_credibility1.fs_ds_id 
+ ) t 
+	
+) tt1
+
+ WHERE  tt0.batch_t0_row_id = tt1.batch_t1_row_id
+
+	
+)  tt WHERE tt.f_x >= 0
+
+
+ 
+ ---------------判断条件的可信值---------------
+ SELECT batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_id, batch_t0_name, expr_name, batch_t0_batch_id, f_expr_name,1 AS flag 
+ FROM memory.default.correct_dimension01 
+ WHERE flag=0 
+ AND  ( f_expr_name - batch_t0_f_col_name > 0 or ( abs(f_expr_name - batch_t0_f_col_name) < 0 and batch_t0_name = expr_name and batch_t0_f_col_name < f_expr_name ) ) ;
+ 
+ --------------将满足的条件写入内存表中-------------
+ INSERT INTO memory.default.correct_dimension01 (  
+	 batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_batch_id, batch_t0_id, batch_t0_name, batch_t0_city,
+	 batch_t0_f_col_id, batch_t0_f_col_name, batch_t0_f_col_city,
+	 batch_t1_row_id, batch_t1_source_data_id, batch_t1_last_update_time, batch_t1_batch_id, batch_t1_id, batch_t1_name, batch_t1_city, 
+	 batch_t1_f_col_id, batch_t1_f_col_name, batch_t1_f_col_city,
+	 flag ) 
+ 
+ SELECT 
+    batch_t0_row_id, batch_t0_source_data_id, batch_t0_last_update_time, batch_t0_batch_id, batch_t0_id, expr_name, batch_t0_city,
+	 batch_t0_f_col_id, f_expr_name, batch_t0_f_col_city,
+	batch_t1_row_id, batch_t1_source_data_id, batch_t1_last_update_time, batch_t1_batch_id, batch_t1_id, batch_t1_name, batch_t1_city,
+	 batch_t1_f_col_id, batch_t1_f_col_name, batch_t1_f_col_city,
+	1 AS flag 
+ FROM memory.default.correct_dimension01 
+ WHERE flag=0 
+ 
+ AND  ( f_expr_name - batch_t0_f_col_name > 0 or ( abs(f_expr_name - batch_t0_f_col_name) < 0 and batch_t0_name = expr_name and batch_t0_f_col_name < f_expr_name ) ) ;
+ 
+	
+	
+	
+	
+	INSERT OVERWRITE LOCAL DIRECTORY '/root' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT * FROM batch;
+	
+	INSERT OVERWRITE LOCAL DIRECTORY '/root' SELECT * FROM batch;
+	
+	insert overwrite directory "/tmp/out1" SELECT * FROM ei_dim.batch;
+	
+	insert overwrite directory "/tmp/out/batch" row format delimited fields terminated by "," outputformat=csv  SELECT * FROM ei_dim.batch;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

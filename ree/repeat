@@ -1,0 +1,46 @@
+on batch(id, name, city) where id = '001' merge {default} distinct id, name;
+
+------------中间表
+CREATE TABLE IF NOT EXISTS ei_dim.batch
+(
+row_id string,
+source_data_id string,
+last_update_time bigint,
+id string,
+name string,
+city string
+) partitioned by ( batch_id string ) 
+
+---
+delete from hive.ei_dim.batch;
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('11111','dsid0.table0', 19881010, '001', 'java', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('22222','dsid0.table0', 19881010, '001', 'go', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('33333','dsid0.table0', 19881010, '002', 'c', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('44444','dsid0.table0', 19881010, '002', 'c++', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('55555','dsid0.table0', 19881010, '003', 'python', 'shenzhen', 'batch01');
+select * from hive.ei_dim.batch;
+
+
+---查询内存表
+select * from memory.default.repeat_ei20200423162203513802818;
+
+---接口
+{
+    "dimensionID": "tm.000999001",
+    "ruleContent": {
+        "name": "cc02",
+        "body": "  on batch(id, name, city) where id = '001' merge {default} distinct id ;  ",
+        "description": "RE 测试规则"
+    },
+    "type": "procedure"
+}
+
+------------------
+
+
+ INSERT INTO hive.ei_dim.batch ( row_id,source_data_id,last_update_time,id,name,city,batch_id ) 
+ SELECT row_id,source_data_id,last_update_time,id,name,city,batch_id FROM memory.default.repeat_ei20200423162203513802818 WHERE flag=1
+
+
+ delete from hive.ei_dim.dim_confidence_logs;
+ SELECT * FROM hive.ei_dim.dim_confidence_logs;

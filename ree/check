@@ -1,0 +1,54 @@
+ON batch(id, name) WITH t0, t1 WHERE t0.id = t1.id CHECK t0.name = t1.name;
+
+
+delete from hive.ei_dim.batch;
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('11111','dsid0.table0', 19881010, '001', 'java', 'changsha', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('22222','dsid0.table0', 19881010, '001', 'go', 'changsha', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('33333','dsid0.table0', 19881010, '002', 'c', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('44444','dsid0.table0', 19881010, '002', 'c++', 'shenzhen', 'batch01');
+insert into hive.ei_dim.batch(row_id, source_data_id, last_update_time, id, name, city, batch_id ) values('55555','dsid0.table0', 19881010, '003', 'python', 'shenzhen', 'batch01');
+select * from hive.ei_dim.batch;
+
+
+ 
+转成SQL：
+ SELECT t0.row_id as t0_row_id, t0.name as t0_name, t0.id as t0_id, t1.row_id as t1_row_id, t1.name as t1_name, t1.id as t1_id  
+ FROM hive.ei_dim.batch t0, hive.ei_dim.batch t1 
+ WHERE t0.id = t1.id AND t0.row_id != t1.row_id AND NOT  ( t0.name = t1.name ) 
+ 
+ 
+  SELECT t0.row_id as t0_row_id, t0.name as t0_name, t0.id as t0_id, t1.row_id as t1_row_id, t1.name as t1_name, t1.id as t1_id  
+  FROM hive.ei_dim.batch t0, hive.ei_dim.batch t1 
+  WHERE t0.id = t1.id AND t0.row_id != t1.row_id AND NOT  ( t0.name = t1.name ) 
+ 
+-------------------接口准备--------------
+
+{
+    "dimensionID": "tm.000999001",
+    "ruleContent": {
+        "name": "check001",
+        "body": "  ON batch(id, name) WITH t0, t1 WHERE t0.id = t1.id CHECK t0.name = t1.name;  ",
+        "description": "RE 测试规则"
+    },
+    "type": "procedure"
+}
+-------------------
+{
+        "batchID": "batch",
+        "batchParentID": "parent",
+        "dimensionID": "dimension",
+        "inputParams": [],
+        "isAsync": 0,
+        "isDebug": 0,
+        "outputParams": [],
+        "ruleID": "793699119789241182"
+}
+--------------------
+
+
+
+ on batch(id, name) where id = '001' check city = 'changsha' ; 
+ 
+ ON batch(id, name) WITH t0 WHERE t0.id = '001' CHECK t0.city = 'changsha' ; 
+ ON batch(id, name) WITH t0,t1 WHERE t0.id = t1.id CHECK t0.city = t1.city and t0.id = '001'; 
+
